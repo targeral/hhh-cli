@@ -1,0 +1,7 @@
+{
+    "name": "demo",
+    "type": "module",
+    "dependencies": {
+        "rc": "^1.2.8"
+    }
+}
