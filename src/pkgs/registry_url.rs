@@ -6,8 +6,8 @@ pub fn registry_url(scope: &str) -> String {
         "registry": "https://registry.npmjs.org/"
     }));
     let result = rc::index::rc("npm", Some(default_v));
+    let mut url = String::new();
     if let Some(rc_result_o) = result.as_object() {
-        let mut url = String::new();
         let scope_key = format!("{scope}:registry");
         if let Some(v) = rc_result_o.get(scope_key.as_str()) {
             if let Some(v) = v.as_str() {
@@ -23,8 +23,7 @@ pub fn registry_url(scope: &str) -> String {
     }
     
     // port:https://github.com/sindresorhus/registry-url/blob/main/index.js
-    let result = String::from("https://registry.npmjs.org/");
-    result
+    url
 }
 
 #[cfg(test)]
