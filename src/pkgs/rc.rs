@@ -163,7 +163,7 @@ mod utils {
 
 pub mod index {
     use serde_json::{Value, json};
-    use super::utils::{self as cc};
+    use super::utils::{self as cc, json};
     use std::path::{Path};
 
     pub enum DefaultInput {
@@ -180,7 +180,51 @@ pub mod index {
         }
     }
 
-    pub fn rc(name: &str, defaults: Option<DefaultInput>) {
+    fn deep_clone_array(arr: &Value) -> Value {
+        let mut clone = json!([]);
+        let clone_arr = clone.as_array_mut().unwrap();
+        if arr.is_array() {
+            for (index, item) in arr.as_array().unwrap().iter().enumerate() {
+                if item.is_object() && !item.is_null() {
+                    if item.is_array() {
+                        clone_arr.insert(index, deep_clone_array(item))
+                    } else {
+                        clone_arr.insert(index, deep_extend(vec![json!({}), item.clone()]))
+                    }
+                } else {
+                    clone_arr.insert(index, item.clone());
+                }
+            }
+        }
+
+        clone
+    }
+
+    fn deep_extend(values: Vec<Value>) -> Value {
+        let result = values.iter().fold(json!({}), |mut acc, x| {
+            let acc_map = acc.as_object_mut().unwrap();
+            if let Value::Object(o) = x {
+                for (k, v) in o {
+                    let src = acc_map.get(k);
+                    let val = x.get(k).unwrap();
+                    if !val.is_object() || val.is_null() {
+                        acc_map.insert(k.clone(), val.clone());
+                    } else if val.is_array() {
+                        acc_map.insert(k.clone(), deep_clone_array(val));
+                    } else if src.is_none() || src.is_some_and(|s| !s.is_object() || s.is_null() || s.is_array()) {
+                        acc_map.insert(k.clone(), deep_extend(vec![json!({}), val.clone()]));
+                    } else {
+                        acc_map.insert(k.clone(), deep_extend(vec![src.unwrap().clone(), val.clone()]));
+                    }
+                }
+
+            }
+            acc
+        });
+        result
+    }
+
+    pub fn rc(name: &str, defaults: Option<DefaultInput>) -> Value {
         let defaults_: Value;
         if let Some(defaults) = defaults {
             defaults_ = defaults.to_value();
@@ -257,16 +301,46 @@ pub mod index {
                 "config": config_files[config_files.len() - 1]
             }));
         }
-        println!("len is {}", configs.len());
-        for config in configs {
-            println!("config is {config}");
+
+        deep_extend(configs)
+    }
+
+
+    #[cfg(test)]
+    mod tests {
+        use serde_json::json;
+        use crate::pkgs::rc::utils::json;
+
+        use super::deep_extend;
+
+        #[test]
+        fn test_deep_extend() -> Result<(), String> {
+            let v1 = json!({"a": "1", "b": {"b_1": "b_1"}, "c": ["c_1", "c_2"], "d": 1});
+            let v2 = json!({"a": "2"});
+            let v3 = json!({"b": {"b_1": "B_1", "b_2": "B_2"}});
+            let v4 = json!({"c": ["c_3"]});
+            let result = deep_extend(vec![v1, v2, v3, v4]);
+            let expect = json!({
+                "a": "2",
+                "b": {"b_1": "B_1", "b_2": "B_2"},
+                "c": ["c_3"],
+                "d": 1
+            });
+            if result == expect {
+                Ok(())
+            } else {
+                println!("{:#}", result);
+                Err(format!("{:#}", result))
+            }
         }
     }
+
 }
 
 #[cfg(test)]
 mod tests {
-    use super::utils;
+    use super::*;
+    use super::index;
     use serde_json::json;
     use std::{collections::HashMap, path::Path};
 
