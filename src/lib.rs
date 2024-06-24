@@ -25,7 +25,7 @@ impl CommandContext {
 pub fn commands_init(context: CommandContext) {
     println!("appDir: {:?}, runInGlobalEnv: {}", context.app_dir, context.run_in_global_env);
     update::check_latest_version();
-    init::run();
+    init::run(&context.app_dir.to_path_buf());
 }
 
 pub fn init_command_context() -> CommandContext {

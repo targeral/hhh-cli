@@ -1,9 +1,10 @@
 
 use crate::pkgs::pkg_json;
 use indicatif::{ProgressBar, ProgressStyle};
-use std::{thread::sleep, time::Duration};
+use std::time::Duration;
+use semver::Version;
 
-pub fn check_latest_version() -> Result<(), String> {
+pub fn check_latest_version() {
     let plugin_name = env!("CLI_NAME");
     let current_version = env!("CLI_VERSION");
 
@@ -29,11 +30,15 @@ pub fn check_latest_version() -> Result<(), String> {
         },
         _ => {
             spinner.finish_and_clear();
-            return Err(format!(r#"Failed to get "latest" version"#));
+            eprintln!(r#"Failed to get "latest" version"#);
+            panic!();
         }
     };
 
-    println!("{current_version}, {latest_version}");
+    let current_version = Version::parse(&current_version).unwrap();
+    let latest_version = Version::parse(&latest_version).unwrap();
 
-    Ok(())
+    if current_version < latest_version {
+        println!("A new version of {plugin_name} is available: v{latest_version}");
+    }
 }

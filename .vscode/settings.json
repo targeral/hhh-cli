@@ -4,6 +4,7 @@
         "hhh",
         "indicatif",
         "inistr",
-        "reqwest"
+        "reqwest",
+        "urlencoding"
     ]
 }

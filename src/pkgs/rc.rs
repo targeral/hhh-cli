@@ -340,7 +340,6 @@ pub mod index {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::index;
     use serde_json::json;
     use std::{collections::HashMap, path::Path};
 
@@ -374,6 +373,8 @@ mod tests {
 
     #[test]
     fn parse_ini_file() -> Result<(), String> {
+        // TODO: registry = 'https://registry.npmjs.org/'
+        // this will get "'https://registry.npmjs.org'", so join other string will make error link
         let ini_content = r#"
         //registry.npmjs.org/:_authToken=xxx
         access=public

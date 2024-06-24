@@ -8,4 +8,3 @@ export default function(options) {
 ```
 
 使用 rust 如何表达相同的逻辑。
-

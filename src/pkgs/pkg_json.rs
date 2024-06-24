@@ -1,40 +1,46 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::{Debug, Display}};
 
 use crate::pkgs::registry_url::*;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use urlencoding::encode;
-
-use super::registry_url;
+// use super::registry_url;
 
 // port:
 // - https://github.com/sindresorhus/type-fest/blob/main/source/literal-union.d.ts
 // - https://github.com/sindresorhus/package-json/blob/main/index.d.ts#L641
+#[derive(Serialize, Deserialize, Debug)]
 pub struct PersonDetail {
     name: String,
     url: Option<String>,
     email: Option<String>
 }
 
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Person {
     Name(String),
     Detail(PersonDetail)
 }
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct PackageJsonStandard {
     // The name of the package.
-    name: Option<String>,
+    pub name: Option<String>,
 
-    version: Option<String>,
+    pub version: Option<String>,
 
-    description: Option<String>,
+    pub description: Option<String>,
 
-    keywords: Option<Vec<String>>,
+    pub keywords: Option<Vec<String>>,
 
-    homepage: Option<String>,
+    pub homepage: Option<String>,
 
-    author: Option<Person>,   
+    pub author: Option<Person>,
+
+    #[serde(rename = "devDependencies")]
+    pub dev_dependencies: HashMap<String, String>,
+    pub dependencies: HashMap<String, String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -146,6 +152,7 @@ pub async fn get_package_json_from_rc(package_name: &str, options: PackageJsonOp
     let package_name = reg.replace(&encode_package_name, "@");
 
     let package_url = format!("{parsed_registry_url}/{package_name}");
+    println!("package_url: {package_url}");
 
     let client = reqwest::Client::new();
     let mut headers = reqwest::header::HeaderMap::new();

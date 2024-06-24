@@ -23,7 +23,7 @@ pub fn registry_url(scope: &str) -> String {
     }
     
     // port:https://github.com/sindresorhus/registry-url/blob/main/index.js
-    url
+    url.trim_matches('\'').to_string()
 }
 
 #[cfg(test)]
