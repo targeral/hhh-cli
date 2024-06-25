@@ -1,62 +1,15 @@
+mod context;
+
 use std::fs::{self, File};
 use std::io::BufReader;
-use std::path::{Path, PathBuf};
-use std::fmt::Display;
+use std::path::Path;
 use std::process::{self, Command};
 
+use context::{InitContext, CreateAction};
+
 use crate::pkgs::pkg_json::PackageJsonStandard;
+use crate::utils::config::{check_config_file_if_exist, read_hhh_config, HHHConfig};
 use crate::utils::monorepo;
-
-enum CreateAction {
-    ModernJSProject,
-    SubModernJSProject,
-}
-
-pub struct InitContext {
-    is_pnpm: bool,
-    monorepo_abs_path: PathBuf,
-    create_action: Option<CreateAction>,
-}
-
-impl InitContext {
-    fn new() -> Self {
-        InitContext {
-            is_pnpm: false,
-            monorepo_abs_path: PathBuf::new(),
-            create_action: None
-        }
-    }
-
-    fn set_is_pnpm(&mut self, is_pnpm: bool) {
-        self.is_pnpm = is_pnpm;
-    }
-
-    fn set_pnpm_root_path(&mut self, monorepo_abs_path: &PathBuf) {
-        self.monorepo_abs_path = monorepo_abs_path.to_path_buf();
-    }
-
-    fn set_create_action(&mut self, create_action: CreateAction) {
-        self.create_action = Some(create_action);
-    }
-}
-
-impl Display for InitContext {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mono_abs_path_str = self.monorepo_abs_path.to_str().unwrap();
-        let create_action_value = match self.create_action {
-            Some(CreateAction::ModernJSProject) => "modern-js-project",
-            Some(CreateAction::SubModernJSProject) => "sub-eden-project",
-            None => ""
-        };
-        write!(f, r#"
-          {{
-            "isPnpm": {},
-            "monorepoRoot": "{}",
-            "createAction": "{}",
-          }}
-        "#, self.is_pnpm, mono_abs_path_str, create_action_value)
-    }
-}
 
 pub fn run(app_dir: &Path) {
     let mut context = InitContext::new();
@@ -103,6 +56,26 @@ pub fn run(app_dir: &Path) {
         },
         ProjectType::NotSubProject => {
             println!("请在 ModernJS 子项目下执行该命令");
+        }
+    }
+
+    match check_config_file_if_exist(app_dir) {
+        Ok(result) => {
+            context.set_config_exist(result);
+            if result == true {
+                context.set_config_exist(result);
+                if let Ok(hhh_config) = read_hhh_config(app_dir) {
+                    context.set_hhh_config(hhh_config);
+                } else {
+                    eprintln!("读取本地 hhh 配置文件失败");
+                }
+            } else {
+                context.set_hhh_config(HHHConfig::default());
+            }
+        },
+        Err(_) => {
+            context.set_config_exist(false);
+            context.set_hhh_config(HHHConfig::default());
         }
     }
 
@@ -161,7 +134,7 @@ fn check_project_type_in_cwd(cwd: &Path, is_mono: bool) -> ProjectType {
     let pkg_json = pkg_json_option.unwrap();
     if pkg_json.dev_dependencies.contains_key("@modern-js/app-tools") {
         if is_mono {
-            return ProjectType::ModernJSSubProject;;
+            return ProjectType::ModernJSSubProject;
         } else {
             return ProjectType::ModernJSProject;
         }
